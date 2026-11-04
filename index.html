@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roblox Arsenal Pro - FFA Bot Battles</title>
+  <title>Roblox Arsenal Pro - Burning Deaths & Ammo Drops</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -19,6 +19,15 @@
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       box-shadow: inset 0 0 70px rgba(220, 38, 38, 0.7);
       pointer-events: none; opacity: 0; z-index: 8; transition: opacity 0.3s;
+    }
+
+    /* Pickup Banner */
+    #pickup-banner {
+      position: fixed; top: 22%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(16, 185, 129, 0.9); border: 2px solid #fff; border-radius: 8px;
+      padding: 8px 24px; color: #fff; font-size: 18px; font-weight: 900;
+      letter-spacing: 1px; opacity: 0; pointer-events: none; z-index: 20;
+      transition: opacity 0.15s, transform 0.15s;
     }
 
     #crosshair {
@@ -141,9 +150,7 @@
       background: #1e293b; padding: 10px 14px; border-radius: 8px; margin: 6px 0;
       border: 1px solid #334155; display: flex; flex-direction: column; gap: 4px;
     }
-    .vote-item-top {
-      display: flex; justify-content: space-between; align-items: center;
-    }
+    .vote-item-top { display: flex; justify-content: space-between; align-items: center; }
     .vote-btn-action {
       background: #38bdf8; border: none; color: #000; font-weight: 900;
       padding: 5px 14px; border-radius: 6px; cursor: pointer; transition: 0.1s;
@@ -170,6 +177,7 @@
   <canvas id="game-canvas"></canvas>
   <div id="damage-flash"></div>
   <div id="low-hp-pulse"></div>
+  <div id="pickup-banner">+MUNITION AUFGENOMMEN!</div>
   <div id="scope-overlay"></div>
 
   <div id="death-screen">
@@ -179,7 +187,7 @@
 
   <div id="ui">
     <div id="hud-top">
-      <div class="lobby-badge">MODUS: <b>FREE-FOR-ALL (6 SPIELER)</b> &bull; Bots bekämpfen sich!</div>
+      <div class="lobby-badge">MODUS: <b>FREE-FOR-ALL (6 SPIELER)</b> &bull; Blickfeld-Culling Aktiv ⚡</div>
     </div>
     <div id="crosshair"></div>
     <div id="hitmarker"></div>
@@ -201,7 +209,7 @@
   <div id="blocker">
     <div id="menu-box">
       <h1>ROBLOX ARSENAL FFA</h1>
-      <p style="color: #94a3b8; font-size: 13px;">Echtes Jeder-gegen-Jeden &bull; Bots jagen und killen sich</p>
+      <p style="color: #94a3b8; font-size: 13px;">Verbrenn-Effekt &bull; Munitions-Drops &bull; Blickfeld-Rendering</p>
 
       <div style="margin: 10px 0;">
         <div class="selector-row">
@@ -219,7 +227,6 @@
         </div>
       </div>
 
-      <!-- Live 6-Player Voting Modal -->
       <button class="btn-vote" onclick="startMapVoting()">🗳️ MAP-VOTING STARTEN (1 STIMME PRO SPIELER)</button>
       
       <div id="vote-modal">
@@ -262,16 +269,15 @@
       <button class="btn-main" onclick="startGame()">▶ JETZT KÄMPFEN</button>
       
       <div class="rules-list">
-        <p style="color: #38bdf8; font-weight: bold;">⚔️ FFA-MODUS: Bots bekämpfen sich untereinander & jagen auch dich!</p>
+        <p style="color: #f59e0b; font-weight: bold;">📦 MUNITION: Tote Gegner droppen Kisten! Einsammeln für Munition.</p>
+        <p style="color: #f43f5e; font-weight: bold;">🔥 VERBRENNEN: Besiegte Gegner zerbirsten in Flammen & Glut.</p>
         <p style="color: #22c55e; font-weight: bold;">💖 REGENERATION: Heilt sich automatisch nach 3s ohne Treffer!</p>
-        <p style="color: #f43f5e; font-weight: bold;">🔪 MESSER: Hinten = 1-Shot Backstab | Vorne = 2 Hits</p>
-        <p style="color: #f59e0b; font-weight: bold;">🎯 SNIPER: 1-Shot Kill (Überall One-Hit!)</p>
       </div>
     </div>
   </div>
 
   <script>
-    /* --- AUDIO SYNTH MIT RÄUMLICHEM DISTANZ-SOUND --- */
+    /* --- AUDIO SYNTH MIT VERBRENN- & PICKUP-SOUNDS --- */
     let audioCtx = null;
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -307,6 +313,23 @@
         gain.gain.setValueAtTime(0.3 * volume, t);
         gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
         osc.start(t); osc.stop(t + 0.1);
+      } else if (type === 'burn') {
+        // Zischender Feuer-Verpuffungssound
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(380, t);
+        osc.frequency.linearRampToValueAtTime(60, t + 0.35);
+        gain.gain.setValueAtTime(0.55 * volume, t);
+        gain.gain.linearRampToValueAtTime(0.01, t + 0.35);
+        osc.start(t); osc.stop(t + 0.35);
+      } else if (type === 'ammo_pickup') {
+        // Kristallener Belohnungssound
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, t);
+        osc.frequency.setValueAtTime(780, t + 0.08);
+        osc.frequency.setValueAtTime(1040, t + 0.16);
+        gain.gain.setValueAtTime(0.4, t);
+        gain.gain.linearRampToValueAtTime(0.01, t + 0.28);
+        osc.start(t); osc.stop(t + 0.28);
       } else if (type === 'reload_out') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(200, t);
@@ -361,7 +384,6 @@
       }
     }
 
-    // Sound mit Entfernungs-Dämpfung abspielen
     function playSpatialSound(type, sourcePos) {
       if (!audioCtx) return;
       const dist = camera.position.distanceTo(sourcePos);
@@ -423,11 +445,12 @@
     dirLight.shadow.bias = -0.0004;
     scene.add(dirLight);
 
-    /* --- MAP SYSTEM --- */
+    /* --- MAP SYSTEM & CULLABLE OBJECTS --- */
     const mapGroup = new THREE.Group();
     scene.add(mapGroup);
     const obstacles = [];
     const obstacleMeshes = [];
+    const cullableObjects = []; // Alle Objekte für das Blickfeld-Culling
 
     function addObstacleBox(x, y, z, sx, sy, sz, mat) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
@@ -435,6 +458,7 @@
       m.castShadow = true; m.receiveShadow = true;
       mapGroup.add(m);
       obstacleMeshes.push(m);
+      cullableObjects.push(m); // Für Blickfeld-Culling registrieren
       obstacles.push({ minX: x - sx/2, maxX: x + sx/2, minZ: z - sz/2, maxZ: z + sz/2, minY: y, maxY: y + sy, isRamp: false });
       return m;
     }
@@ -448,6 +472,7 @@
       m.castShadow = true; m.receiveShadow = true;
       mapGroup.add(m);
       obstacleMeshes.push(m);
+      cullableObjects.push(m);
       obstacles.push({ minX: x - sx/2, maxX: x + sx/2, minZ: z - sz/2, maxZ: z + sz/2, minY: y, maxY: y + sy, isRamp: true });
     }
 
@@ -455,6 +480,7 @@
       mapGroup.clear();
       obstacles.length = 0;
       obstacleMeshes.length = 0;
+      cullableObjects.length = 0;
 
       if (type === 'warehouse') {
         scene.background = new THREE.Color(0x93c5fd);
@@ -510,9 +536,118 @@
         const signMesh = new THREE.Mesh(new THREE.BoxGeometry(20, 5, 0.4), new THREE.MeshBasicMaterial({ map: signTex }));
         signMesh.position.set(0, 12, -18);
         mapGroup.add(signMesh);
+        cullableObjects.push(signMesh);
       }
     }
     buildMap('warehouse');
+
+    /* --- BLICKFELD-CULLING SYSTEM (HINTERBEREICH VERSCHWINDET ZUR LEISTUNGSSTEIGERUNG) --- */
+    const frustum = new THREE.Frustum();
+    const projScreenMatrix = new THREE.Matrix4();
+
+    function updateFrustumCulling() {
+      projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      frustum.setFromProjectionMatrix(projScreenMatrix);
+
+      // Objekte außerhalb des Blickfeldes sofort aus dem Rendervorgang werfen
+      for (let i = 0; i < cullableObjects.length; i++) {
+        const obj = cullableObjects[i];
+        obj.visible = frustum.intersectsObject(obj);
+      }
+    }
+
+    /* --- TODES-EFFEKT: VERBRENNEN & GLUT-PARTIKEL --- */
+    function spawnBurningDisintegration(pos) {
+      playSound('burn', 1.0);
+      const emberCount = 22;
+      const colors = [0xff4500, 0xf59e0b, 0xef4444, 0x18181b];
+
+      for (let i = 0; i < emberCount; i++) {
+        const col = colors[Math.floor(Math.random() * colors.length)];
+        const size = 0.15 + Math.random() * 0.2;
+        const ember = new THREE.Mesh(
+          new THREE.BoxGeometry(size, size, size),
+          new THREE.MeshBasicMaterial({ color: col })
+        );
+        ember.position.set(
+          pos.x + (Math.random() - 0.5) * 1.4,
+          pos.y + 0.5 + Math.random() * 2.5,
+          pos.z + (Math.random() - 0.5) * 1.4
+        );
+        scene.add(ember);
+
+        const vel = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.18,
+          0.12 + Math.random() * 0.14,
+          (Math.random() - 0.5) * 0.18
+        );
+        let life = 32;
+
+        function updateEmber() {
+          ember.position.add(vel);
+          vel.y -= 0.003;
+          ember.scale.multiplyScalar(0.94);
+          life--;
+          if (life > 0) requestAnimationFrame(updateEmber);
+          else scene.remove(ember);
+        }
+        updateEmber();
+      }
+    }
+
+    /* --- MUNITIONS-DROP SYSTEM --- */
+    const ammoDrops = [];
+    const ammoCrateMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.4, metalness: 0.4 });
+    const ammoGoldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.2, metalness: 0.8 });
+
+    function spawnAmmoDrop(pos) {
+      const dropGroup = new THREE.Group();
+      dropGroup.position.set(pos.x, 0.7, pos.z);
+
+      // Kiste
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.45, 0.5), ammoCrateMat);
+      crate.castShadow = true;
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.1, 0.54), ammoGoldMat);
+      dropGroup.add(crate, band);
+
+      // Leuchtender Punkt
+      const dropLight = new THREE.PointLight(0x22c55e, 1.2, 5);
+      dropGroup.add(dropLight);
+
+      scene.add(dropGroup);
+      ammoDrops.push({ group: dropGroup, baseY: 0.7, despawnTime: performance.now() + 24000 });
+    }
+
+    function checkAmmoPickups() {
+      const pPos = camera.position;
+      for (let i = ammoDrops.length - 1; i >= 0; i--) {
+        const drop = ammoDrops[i];
+        const dist = pPos.distanceTo(drop.group.position);
+
+        // Einsammeln
+        if (dist < 2.3) {
+          playSound('ammo_pickup');
+          weapons.pistol.reserve += 12;
+          weapons.sniper.reserve += 5;
+          updateAmmoUI();
+
+          // Popup Banner
+          const banner = document.getElementById('pickup-banner');
+          banner.style.opacity = '1';
+          banner.style.transform = 'translate(-50%, -50%) scale(1.1)';
+          setTimeout(() => {
+            banner.style.opacity = '0';
+            banner.style.transform = 'translate(-50%, -50%) scale(1)';
+          }, 1100);
+
+          scene.remove(drop.group);
+          ammoDrops.splice(i, 1);
+        } else if (performance.now() > drop.despawnTime) {
+          scene.remove(drop.group);
+          ammoDrops.splice(i, 1);
+        }
+      }
+    }
 
     /* --- WAFFEN & MUNITION --- */
     const weapons = {
@@ -811,6 +946,9 @@
     function playerDie(attackerName) {
       playerHealth = 0;
       updateHealthUI();
+      spawnBurningDisintegration(camera.position); // Spieler verbrennt beim Sterben!
+      spawnAmmoDrop(camera.position);
+
       deathScreen.style.display = 'flex';
       deathScreen.children[0].innerText = `ELIMINIERT VON ${attackerName}!`;
 
@@ -1026,6 +1164,10 @@
       bot.visible = false;
       bot.userData.respawnTimer = performance.now() + 3000;
 
+      // Verbrennen & Munitions-Drop auslösen!
+      spawnBurningDisintegration(bot.position);
+      spawnAmmoDrop(bot.position);
+
       const feed = document.getElementById('killfeed');
       const msg = document.createElement('div');
       msg.className = 'kill-msg';
@@ -1038,11 +1180,14 @@
       setTimeout(() => msg.remove(), 3400);
     }
 
-    /* --- FFA BOT VS BOT LOGIK & KILLFEED --- */
     function botKillOtherBot(killerBot, victimBot) {
       victimBot.userData.alive = false;
       victimBot.visible = false;
       victimBot.userData.respawnTimer = performance.now() + 3000;
+
+      // Verbrennen & Munitions-Drop auch bei Bot vs Bot!
+      spawnBurningDisintegration(victimBot.position);
+      spawnAmmoDrop(victimBot.position);
 
       const feed = document.getElementById('killfeed');
       const msg = document.createElement('div');
@@ -1051,23 +1196,19 @@
       feed.appendChild(msg);
       setTimeout(() => msg.remove(), 3400);
 
-      // Killer wählt neues Ziel
       killerBot.userData.target = null;
     }
 
-    // Sucht das am nächsten gelegene lebendige Ziel (Spieler ODER anderer Bot)
     function getClosestTarget(bot) {
       let closest = null;
       let minDistance = Infinity;
 
-      // 1. Prüfe Spieler
       if (isPlaying && playerHealth > 0) {
         const distToPlayer = bot.position.distanceTo(camera.position);
         closest = { type: 'player', position: camera.position, distance: distToPlayer };
         minDistance = distToPlayer;
       }
 
-      // 2. Prüfe alle anderen 4 Bots
       bots.forEach(other => {
         if (other === bot || !other.userData.alive) return;
         const d = bot.position.distanceTo(other.position);
@@ -1076,7 +1217,6 @@
           closest = { type: 'bot', bot: other, position: other.position, distance: d };
         }
       });
-
       return closest;
     }
 
@@ -1203,19 +1343,29 @@
       }, 1800);
     }
 
-    /* --- GAME LOOP MIT FREE-FOR-ALL BOT VS BOT BATTLES --- */
+    /* --- GAME LOOP MIT BLICKFELD-CULLING & PICKUP CHECK --- */
     function animate() {
       requestAnimationFrame(animate);
       const time = performance.now() * 0.005;
       const now = performance.now();
 
-      // Lebensregeneration Spieler
+      // 1. Blickfeld-Culling: Versteckt sofort alle Objekte im Rücken
+      updateFrustumCulling();
+
+      // 2. Munitionskisten drehen & schweben lassen
+      ammoDrops.forEach(d => {
+        d.group.rotation.y += 0.025;
+        d.group.position.y = d.baseY + Math.sin(time * 3) * 0.12;
+      });
+      checkAmmoPickups();
+
+      // 3. Lebensregeneration
       if (playerHealth < 100 && now - lastPlayerHitTime > 3000) {
         playerHealth = Math.min(100, playerHealth + 0.15);
         updateHealthUI();
       }
 
-      // Reload-Animation
+      // 4. Reload Animation
       if (isReloading) {
         const current = weapons[currentWeaponKey];
         const elapsed = now - reloadStartTime;
@@ -1243,7 +1393,7 @@
         }
       }
 
-      // Spieler-Bewegung
+      // 5. Spieler-Bewegung
       if (isPlaying) {
         const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
         const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -1297,7 +1447,7 @@
         }
       }
 
-      // --- ECHTE FFA-BOTS: BEKÄMPFEN SICH GEGENSEITIG UND DEN SPIELER ---
+      // 6. BOTS KI (FFA KÄMPFE)
       bots.forEach(bot => {
         if (!bot.userData.alive) {
           if (now > bot.userData.respawnTimer) {
@@ -1309,7 +1459,6 @@
           return;
         }
 
-        // Dynamische Zielauswahl (alle 1.5 Sekunden oder wenn kein Ziel vorhanden ist)
         if (!bot.userData.target || now > bot.userData.nextRetargetTime) {
           bot.userData.target = getClosestTarget(bot);
           bot.userData.nextRetargetTime = now + 1500 + Math.random() * 1000;
@@ -1318,22 +1467,14 @@
         const target = bot.userData.target;
         if (!target) return;
 
-        // Prüfen, ob das Ziel noch lebt
-        if (target.type === 'bot' && !target.bot.userData.alive) {
-          bot.userData.target = null;
-          return;
-        }
-        if (target.type === 'player' && (!isPlaying || playerHealth <= 0)) {
-          bot.userData.target = null;
-          return;
-        }
+        if (target.type === 'bot' && !target.bot.userData.alive) { bot.userData.target = null; return; }
+        if (target.type === 'player' && (!isPlaying || playerHealth <= 0)) { bot.userData.target = null; return; }
 
-        // Ziel anvisieren
         const targetPos = (target.type === 'player') ? camera.position : target.bot.position;
         bot.lookAt(targetPos.x, bot.position.y, targetPos.z);
         const dist = bot.position.distanceTo(targetPos);
 
-        // Bots Springen (Bunny-Hops)
+        // Bots Springen
         if (now > bot.userData.nextJumpTime && bot.userData.isGrounded) {
           bot.userData.vy = 0.22;
           bot.userData.isGrounded = false;
@@ -1347,7 +1488,6 @@
           bot.position.y = 0; bot.userData.vy = 0; bot.userData.isGrounded = true;
         }
 
-        // Bewegen bis zur Waffen-Reichweite
         const stopDistance = (bot.userData.weapon === 'knife') ? 3.0 : ((bot.userData.weapon === 'pistol') ? 14 : 26);
         if (dist > stopDistance) {
           bot.translateZ(bot.userData.speed);
@@ -1358,16 +1498,13 @@
           bot.userData.rightArm.rotation.x = limbAngle;
         }
 
-        // ANGRIFFS-LOGIK (AUF SPIELER ODER GEGNERISCHEN BOT)
         if (dist <= bot.userData.attackRange) {
           if (now - bot.userData.lastAttack > bot.userData.attackCooldown) {
             bot.userData.lastAttack = now;
 
-            // Schlag-/Schussanimation am Arm
             bot.userData.rightArm.rotation.x = -1.2;
             setTimeout(() => { bot.userData.rightArm.rotation.x = 0; }, 180);
 
-            // 1. ZIEL IST DER SPIELER
             if (target.type === 'player') {
               if (bot.userData.weapon === 'knife') playSound('knife');
               else if (bot.userData.weapon === 'pistol') playSound('pistol');
@@ -1377,18 +1514,14 @@
               if (Math.random() < hitChance) {
                 applyPlayerDamage(bot.userData.damageToPlayer, bot.userData.name);
               }
-            } 
-            // 2. ZIEL IST EIN ANDERER BOT (BOT VS BOT KAMPF!)
-            else if (target.type === 'bot') {
+            } else if (target.type === 'bot') {
               playSpatialSound(bot.userData.weapon, bot.position);
-
               const hitChance = (bot.userData.weapon === 'knife') ? 0.85 : 0.65;
               if (Math.random() < hitChance) {
                 const victim = target.bot;
                 victim.userData.hp -= bot.userData.damageToBot;
                 spawnSparks(victim.position);
 
-                // Hat Bot den anderen Bot gekillt?
                 if (victim.userData.hp <= 0) {
                   botKillOtherBot(bot, victim);
                 }
