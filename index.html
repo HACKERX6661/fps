@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roblox Arsenal Pro - Burning Deaths & Ammo Drops</title>
+  <title>Roblox Arsenal Pro - Shop, Medkits & Round System</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -24,7 +24,7 @@
     /* Pickup Banner */
     #pickup-banner {
       position: fixed; top: 22%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(16, 185, 129, 0.9); border: 2px solid #fff; border-radius: 8px;
+      background: rgba(16, 185, 129, 0.95); border: 2px solid #fff; border-radius: 8px;
       padding: 8px 24px; color: #fff; font-size: 18px; font-weight: 900;
       letter-spacing: 1px; opacity: 0; pointer-events: none; z-index: 20;
       transition: opacity 0.15s, transform 0.15s;
@@ -60,11 +60,12 @@
     #hud-top {
       padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
     }
-    .lobby-badge {
-      background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px; padding: 6px 14px; color: #94a3b8; font-weight: bold; font-size: 13px;
+    .hud-badge {
+      background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px; padding: 6px 14px; color: #fff; font-weight: bold; font-size: 14px;
     }
-    .lobby-badge b { color: #38bdf8; }
+    #round-timer { font-size: 18px; color: #f59e0b; font-weight: 900; }
+    #coin-display { color: #facc15; font-weight: 900; }
 
     #hud-bottom { padding: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
     .hud-card {
@@ -75,20 +76,19 @@
     #health-bar-bg { width: 140px; height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-top: 6px; }
     #health-bar-fill { width: 100%; height: 100%; background: #22c55e; transition: width 0.2s, background 0.2s; }
     #health-val { font-size: 32px; font-weight: 900; color: #22c55e; }
-    #weapon-name { font-size: 26px; font-weight: 900; color: #38bdf8; text-transform: uppercase; }
-    #ammo-display { font-size: 22px; font-weight: 800; color: #f8fafc; margin-top: 2px; }
-    #reload-hint { font-size: 13px; color: #f59e0b; font-weight: bold; display: none; }
+    #weapon-name { font-size: 24px; font-weight: 900; color: #38bdf8; text-transform: uppercase; }
+    #ammo-display { font-size: 20px; font-weight: 800; color: #f8fafc; margin-top: 2px; }
+    #reload-hint { font-size: 12px; color: #f59e0b; font-weight: bold; display: none; }
 
     #killfeed {
-      position: fixed; top: 60px; right: 20px; display: flex;
+      position: fixed; top: 65px; right: 20px; display: flex;
       flex-direction: column; gap: 8px; text-align: right; z-index: 12;
       max-height: 280px; overflow: hidden;
     }
     .kill-msg {
       background: rgba(15, 23, 42, 0.92); padding: 8px 14px; border-radius: 6px;
       color: #fff; border-left: 4px solid #38bdf8; font-weight: bold; font-size: 13px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      animation: feedIn 0.2s ease-out;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: feedIn 0.2s ease-out;
     }
     .special-kill { color: #f43f5e; font-weight: 900; }
     .bot-kill { border-left-color: #94a3b8; color: #cbd5e1; }
@@ -98,13 +98,52 @@
       100% { opacity: 1; transform: translateX(0); }
     }
 
-    #death-screen {
+    /* Shop Modal (Taste B) */
+    #shop-modal {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(153, 27, 27, 0.85); display: none; flex-direction: column;
-      justify-content: center; align-items: center; color: white; z-index: 90;
-      backdrop-filter: blur(6px);
+      background: rgba(0, 0, 0, 0.85); display: none; justify-content: center;
+      align-items: center; z-index: 120;
     }
-    #death-screen h1 { font-size: 48px; font-weight: 900; letter-spacing: 2px; }
+    #shop-box {
+      background: #1e293b; padding: 24px; border-radius: 16px;
+      border: 3px solid #facc15; max-width: 680px; width: 94%; color: white;
+      box-shadow: 0 0 35px rgba(250, 204, 21, 0.35); text-align: center;
+    }
+    .shop-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
+    .shop-tab-btn {
+      background: #334155; border: none; color: white; padding: 8px 24px;
+      border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px;
+    }
+    .shop-tab-btn.active { background: #facc15; color: #000; }
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .shop-card {
+      background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+      padding: 12px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .shop-card h4 { color: #38bdf8; margin-bottom: 4px; }
+    .shop-card button {
+      background: #22c55e; border: none; color: white; font-weight: bold;
+      padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 8px;
+    }
+    .shop-card button:disabled { background: #475569; cursor: not-allowed; }
+
+    /* Runden-Ende & Bestenliste */
+    #round-end-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column;
+      justify-content: center; align-items: center; color: white; z-index: 150;
+    }
+    #leaderboard-box {
+      background: #1e293b; border: 3px solid #38bdf8; border-radius: 16px;
+      padding: 24px 32px; width: 90%; max-width: 520px; text-align: center;
+      box-shadow: 0 0 40px rgba(56, 189, 248, 0.4);
+    }
+    .lb-row {
+      display: flex; justify-content: space-between; padding: 8px 14px;
+      border-radius: 6px; margin: 4px 0; background: #0f172a; font-weight: bold; font-size: 15px;
+    }
+    .lb-row.first { background: #f59e0b; color: #000; }
+    .lb-row.user { border: 2px solid #38bdf8; }
 
     /* Menu & Voting */
     #blocker {
@@ -113,35 +152,18 @@
       align-items: center; z-index: 100;
     }
     #menu-box {
-      background: #1e293b; padding: 28px; border-radius: 16px;
+      background: #1e293b; padding: 26px; border-radius: 16px;
       border: 3px solid #38bdf8; text-align: center; max-width: 640px; width: 94%;
       box-shadow: 0 0 40px rgba(56, 189, 248, 0.4); color: white;
     }
-    #menu-box h1 { font-size: 32px; color: #38bdf8; margin-bottom: 2px; }
-    
     .btn-main {
       background: #22c55e; color: white; border: none; font-size: 22px;
       font-weight: 900; padding: 12px 42px; border-radius: 8px; cursor: pointer;
-      margin: 10px 6px; transition: transform 0.1s, background 0.2s;
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+      margin: 10px 6px; transition: transform 0.1s;
     }
-    .btn-main:hover { background: #16a34a; transform: scale(1.04); }
+    .btn-main:hover { transform: scale(1.04); }
 
-    .btn-vote {
-      background: #0284c7; color: white; border: none; font-size: 15px;
-      font-weight: 800; padding: 8px 20px; border-radius: 8px; cursor: pointer;
-      margin: 6px; transition: transform 0.1s;
-    }
-    .btn-vote:hover { transform: scale(1.05); background: #0369a1; }
-
-    .selector-row { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 8px 0; }
-    .selector-label { font-size: 14px; font-weight: bold; width: 65px; text-align: right; color: #94a3b8; }
-    .selector-btn {
-      background: #334155; border: 2px solid transparent; color: white;
-      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;
-    }
-    .selector-btn.active { border-color: #38bdf8; background: #0284c7; }
-
+    /* Voting Modal */
     #vote-modal {
       display: none; background: #0f172a; border: 2px solid #38bdf8;
       border-radius: 12px; padding: 16px; margin: 12px 0; text-align: left;
@@ -153,17 +175,12 @@
     .vote-item-top { display: flex; justify-content: space-between; align-items: center; }
     .vote-btn-action {
       background: #38bdf8; border: none; color: #000; font-weight: 900;
-      padding: 5px 14px; border-radius: 6px; cursor: pointer; transition: 0.1s;
+      padding: 5px 14px; border-radius: 6px; cursor: pointer;
     }
     .vote-btn-action.selected { background: #22c55e; color: #fff; }
-    .vote-count { font-weight: 900; color: #f59e0b; margin-left: 8px; font-size: 16px; }
     .voter-chips { display: flex; flex-wrap: wrap; gap: 4px; font-size: 11px; margin-top: 4px; }
     .chip { background: #334155; padding: 2px 8px; border-radius: 4px; color: #cbd5e1; }
     .chip-user { background: #0284c7; color: #fff; font-weight: bold; }
-    .vote-log { font-size: 12px; color: #94a3b8; height: 26px; overflow: hidden; margin-top: 6px; font-weight: bold; }
-
-    .rules-list { text-align: left; background: #0f172a; padding: 10px 16px; border-radius: 8px; margin: 8px auto; max-width: 500px; font-size: 13px; }
-    .rules-list p { margin: 2px 0; }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -177,17 +194,90 @@
   <canvas id="game-canvas"></canvas>
   <div id="damage-flash"></div>
   <div id="low-hp-pulse"></div>
-  <div id="pickup-banner">+MUNITION AUFGENOMMEN!</div>
+  <div id="pickup-banner"></div>
   <div id="scope-overlay"></div>
 
-  <div id="death-screen">
-    <h1>DU WURDEST ELIMINIERT!</h1>
-    <p style="font-size: 18px; margin-top: 10px;">Respawn in 2 Sekunden...</p>
+  <!-- Runden-Ende & Bestenliste -->
+  <div id="round-end-screen">
+    <div id="leaderboard-box">
+      <h1 style="color: #f59e0b; margin-bottom: 4px;">🏆 RUNDEN-ENDE</h1>
+      <p style="color: #94a3b8; font-size: 14px; margin-bottom: 12px;">Offizielle Bestenliste der 6 Spieler</p>
+      <div id="leaderboard-list"></div>
+      <p style="font-size: 13px; color: #38bdf8; margin-top: 14px;" id="next-vote-timer">Map-Vote startet in 4s...</p>
+    </div>
+  </div>
+
+  <!-- Shop Modal (Taste B) -->
+  <div id="shop-modal">
+    <div id="shop-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 style="color: #facc15;">🛒 ARSENAL SHOP</h2>
+        <span style="font-weight: bold; font-size: 18px; color: #facc15;">🪙 <span id="shop-coin-count">0</span> Coins</span>
+      </div>
+      <div class="shop-tabs">
+        <button class="shop-tab-btn active" onclick="switchShopTab('weapons', this)">Waffen</button>
+        <button class="shop-tab-btn" onclick="switchShopTab('skins', this)">Skins</button>
+      </div>
+
+      <!-- Waffen Shop -->
+      <div id="shop-tab-weapons" class="shop-grid">
+        <div class="shop-card">
+          <h4>🗡️ Messer</h4>
+          <p style="font-size: 12px; color: #94a3b8;">1-Shot Backstab</p>
+          <button disabled>Freigeschaltet</button>
+        </div>
+        <div class="shop-card">
+          <h4>🔫 Pistole</h4>
+          <p style="font-size: 12px; color: #94a3b8;">1-Shot Kopf / 3 Körper</p>
+          <button disabled>Freigeschaltet</button>
+        </div>
+        <div class="shop-card">
+          <h4>🎯 Sniper</h4>
+          <p style="font-size: 12px; color: #94a3b8;">One-Hit Kill Überall</p>
+          <button disabled>Freigeschaltet</button>
+        </div>
+        <div class="shop-card">
+          <h4>💥 Shotgun</h4>
+          <p style="font-size: 12px; color: #94a3b8;">Schrot-Streuschuss</p>
+          <button id="buy-shotgun" onclick="buyWeapon('shotgun', 250)">Kaufen (250 🪙)</button>
+        </div>
+        <div class="shop-card">
+          <h4>⚡ Rifle (AK-47)</h4>
+          <p style="font-size: 12px; color: #94a3b8;">Vollautomatisch (30 Schuss)</p>
+          <button id="buy-rifle" onclick="buyWeapon('rifle', 400)">Kaufen (400 🪙)</button>
+        </div>
+      </div>
+
+      <!-- Skin Shop -->
+      <div id="shop-tab-skins" class="shop-grid" style="display: none;">
+        <div class="shop-card">
+          <h4>Standard</h4>
+          <button disabled>Aktiv</button>
+        </div>
+        <div class="shop-card">
+          <h4 style="color: #facc15;">Gold Skin</h4>
+          <button id="buy-skin-gold" onclick="buySkin('gold', 200)">Kaufen (200 🪙)</button>
+        </div>
+        <div class="shop-card">
+          <h4 style="color: #00f0ff;">Cyber Neon</h4>
+          <button id="buy-skin-neon" onclick="buySkin('neon', 300)">Kaufen (300 🪙)</button>
+        </div>
+        <div class="shop-card">
+          <h4 style="color: #ef4444;">Lava Blaze</h4>
+          <button id="buy-skin-lava" onclick="buySkin('lava', 400)">Kaufen (400 🪙)</button>
+        </div>
+      </div>
+
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 14px;">Drücke [B] oder klicke, um den Shop zu schließen</p>
+      <button class="btn-main" style="padding: 6px 24px; font-size: 16px; margin-top: 6px;" onclick="toggleShop(false)">SCHLIESSEN</button>
+    </div>
   </div>
 
   <div id="ui">
     <div id="hud-top">
-      <div class="lobby-badge">MODUS: <b>FREE-FOR-ALL (6 SPIELER)</b> &bull; Blickfeld-Culling Aktiv ⚡</div>
+      <div class="hud-badge">🪙 COINS: <span id="coin-display">0</span></div>
+      <div class="hud-badge">⏰ RUNDE: <span id="round-timer">01:30</span></div>
+      <div class="hud-badge">[B] SHOP ÖFFNEN</div>
     </div>
     <div id="crosshair"></div>
     <div id="hitmarker"></div>
@@ -208,33 +298,20 @@
 
   <div id="blocker">
     <div id="menu-box">
-      <h1>ROBLOX ARSENAL FFA</h1>
-      <p style="color: #94a3b8; font-size: 13px;">Verbrenn-Effekt &bull; Munitions-Drops &bull; Blickfeld-Rendering</p>
+      <h1>ROBLOX ARSENAL COMBAT</h1>
+      <p style="color: #94a3b8; font-size: 13px;">Echtes FFA &bull; Medkit-Drops &bull; Waffen-Shop [B]</p>
 
-      <div style="margin: 10px 0;">
-        <div class="selector-row">
-          <span class="selector-label">MAP:</span>
-          <button class="selector-btn active" id="btn-map-warehouse" onclick="selectMapManual('warehouse', this)">Arsenal Dock</button>
-          <button class="selector-btn" id="btn-map-desert" onclick="selectMapManual('desert', this)">Dust Outpost</button>
-          <button class="selector-btn" id="btn-map-cyber" onclick="selectMapManual('cyber', this)">Cyber Neon</button>
-        </div>
-        <div class="selector-row">
-          <span class="selector-label">SKIN:</span>
-          <button class="selector-btn active" onclick="changeSkin('default', this)">Standard</button>
-          <button class="selector-btn" onclick="changeSkin('gold', this)">Gold</button>
-          <button class="selector-btn" onclick="changeSkin('neon', this)">Cyber</button>
-          <button class="selector-btn" onclick="changeSkin('lava', this)">Lava</button>
-        </div>
+      <div style="margin: 12px 0;">
+        <button class="btn-main" onclick="startGame()">▶ SPIEL STARTEN</button>
+        <button class="btn-main" style="background: #eab308; color: #000;" onclick="toggleShop(true)">🛒 SHOP [B]</button>
       </div>
 
-      <button class="btn-vote" onclick="startMapVoting()">🗳️ MAP-VOTING STARTEN (1 STIMME PRO SPIELER)</button>
-      
+      <!-- Voting Modal im Menü -->
       <div id="vote-modal">
         <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; font-size: 14px;">
-          <span>LOBBY-VOTE (Jeder hat 1 Stimme):</span>
+          <span>LOBBY-VOTE (6 Stimmen max):</span>
           <span id="vote-timer" style="color: #38bdf8;">06s</span>
         </div>
-        
         <div class="vote-item">
           <div class="vote-item-top">
             <span>🚢 Arsenal Dock 2.0 <span class="vote-count" id="count-warehouse">0</span></span>
@@ -242,7 +319,6 @@
           </div>
           <div class="voter-chips" id="chips-warehouse"></div>
         </div>
-
         <div class="vote-item">
           <div class="vote-item-top">
             <span>🏜️ Dust Outpost 2.0 <span class="vote-count" id="count-desert">0</span></span>
@@ -250,7 +326,6 @@
           </div>
           <div class="voter-chips" id="chips-desert"></div>
         </div>
-
         <div class="vote-item">
           <div class="vote-item-top">
             <span>⚡ Cyber Neon 2.0 <span class="vote-count" id="count-cyber">0</span></span>
@@ -258,26 +333,12 @@
           </div>
           <div class="voter-chips" id="chips-cyber"></div>
         </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-          <div class="vote-log" id="vote-log-text">Warte auf Bots...</div>
-          <div style="font-size: 13px; font-weight: bold; color: #38bdf8;" id="total-vote-counter">Stimmen: 0 / 6</div>
-        </div>
-      </div>
-
-      <br>
-      <button class="btn-main" onclick="startGame()">▶ JETZT KÄMPFEN</button>
-      
-      <div class="rules-list">
-        <p style="color: #f59e0b; font-weight: bold;">📦 MUNITION: Tote Gegner droppen Kisten! Einsammeln für Munition.</p>
-        <p style="color: #f43f5e; font-weight: bold;">🔥 VERBRENNEN: Besiegte Gegner zerbirsten in Flammen & Glut.</p>
-        <p style="color: #22c55e; font-weight: bold;">💖 REGENERATION: Heilt sich automatisch nach 3s ohne Treffer!</p>
       </div>
     </div>
   </div>
 
   <script>
-    /* --- AUDIO SYNTH MIT VERBRENN- & PICKUP-SOUNDS --- */
+    /* --- AUDIO SYNTHESIZER --- */
     let audioCtx = null;
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -293,126 +354,81 @@
       const t = audioCtx.currentTime;
 
       if (type === 'pistol') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(460, t);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(460, t);
         osc.frequency.exponentialRampToValueAtTime(75, t + 0.12);
-        gain.gain.setValueAtTime(0.35 * volume, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.12);
+        gain.gain.setValueAtTime(0.35 * volume, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.12);
         osc.start(t); osc.stop(t + 0.12);
+      } else if (type === 'rifle') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(380, t);
+        osc.frequency.exponentialRampToValueAtTime(90, t + 0.08);
+        gain.gain.setValueAtTime(0.3 * volume, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.08);
+        osc.start(t); osc.stop(t + 0.08);
+      } else if (type === 'shotgun') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(140, t);
+        osc.frequency.exponentialRampToValueAtTime(30, t + 0.3);
+        gain.gain.setValueAtTime(0.7 * volume, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
+        osc.start(t); osc.stop(t + 0.3);
       } else if (type === 'sniper') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(160, t);
+        osc.type = 'square'; osc.frequency.setValueAtTime(160, t);
         osc.frequency.exponentialRampToValueAtTime(25, t + 0.4);
-        gain.gain.setValueAtTime(0.8 * volume, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.4);
+        gain.gain.setValueAtTime(0.8 * volume, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.4);
         osc.start(t); osc.stop(t + 0.4);
       } else if (type === 'knife') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(580, t);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(580, t);
         osc.frequency.linearRampToValueAtTime(180, t + 0.1);
-        gain.gain.setValueAtTime(0.3 * volume, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
+        gain.gain.setValueAtTime(0.3 * volume, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
         osc.start(t); osc.stop(t + 0.1);
       } else if (type === 'burn') {
-        // Zischender Feuer-Verpuffungssound
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(380, t);
-        osc.frequency.linearRampToValueAtTime(60, t + 0.35);
-        gain.gain.setValueAtTime(0.55 * volume, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.35);
-        osc.start(t); osc.stop(t + 0.35);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(340, t);
+        osc.frequency.linearRampToValueAtTime(50, t + 0.3);
+        gain.gain.setValueAtTime(0.5 * volume, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
+        osc.start(t); osc.stop(t + 0.3);
+      } else if (type === 'heal') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(440, t);
+        osc.frequency.exponentialRampToValueAtTime(880, t + 0.2);
+        gain.gain.setValueAtTime(0.4, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
+        osc.start(t); osc.stop(t + 0.25);
+      } else if (type === 'coin') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(987, t);
+        osc.frequency.setValueAtTime(1318, t + 0.08);
+        gain.gain.setValueAtTime(0.3, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
+        osc.start(t); osc.stop(t + 0.25);
       } else if (type === 'ammo_pickup') {
-        // Kristallener Belohnungssound
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(520, t);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(520, t);
         osc.frequency.setValueAtTime(780, t + 0.08);
-        osc.frequency.setValueAtTime(1040, t + 0.16);
-        gain.gain.setValueAtTime(0.4, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.28);
-        osc.start(t); osc.stop(t + 0.28);
-      } else if (type === 'reload_out') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(200, t);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.15);
-        osc.start(t); osc.stop(t + 0.15);
-      } else if (type === 'reload_in') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(340, t);
-        gain.gain.setValueAtTime(0.35, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.16);
-        osc.start(t); osc.stop(t + 0.16);
+        gain.gain.setValueAtTime(0.4, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.22);
+        osc.start(t); osc.stop(t + 0.22);
       } else if (type === 'player_hurt') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(130, t);
-        gain.gain.setValueAtTime(0.4, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.18);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(130, t);
+        gain.gain.setValueAtTime(0.4, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.18);
         osc.start(t); osc.stop(t + 0.18);
       } else if (type === 'vote_ding') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, t);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(800, t);
         osc.frequency.setValueAtTime(1200, t + 0.05);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.18);
+        gain.gain.setValueAtTime(0.2, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.18);
         osc.start(t); osc.stop(t + 0.18);
       } else if (type === 'backstab') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(280, t);
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(280, t);
         osc.frequency.linearRampToValueAtTime(950, t + 0.22);
-        gain.gain.setValueAtTime(0.7, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
+        gain.gain.setValueAtTime(0.7, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
         osc.start(t); osc.stop(t + 0.25);
       } else if (type === 'hit') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(360, t);
-        gain.gain.setValueAtTime(0.25, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.08);
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(360, t);
+        gain.gain.setValueAtTime(0.25, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.08);
         osc.start(t); osc.stop(t + 0.08);
       } else if (type === 'headshot') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1100, t);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(1100, t);
         osc.frequency.setValueAtTime(1650, t + 0.08);
-        gain.gain.setValueAtTime(0.45, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.28);
+        gain.gain.setValueAtTime(0.45, t); gain.gain.linearRampToValueAtTime(0.01, t + 0.28);
         osc.start(t); osc.stop(t + 0.28);
-      } else if (type === 'spark') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(800, t);
-        gain.gain.setValueAtTime(0.08, t);
-        gain.gain.linearRampToValueAtTime(0.001, t + 0.05);
-        osc.start(t); osc.stop(t + 0.05);
       }
     }
 
     function playSpatialSound(type, sourcePos) {
       if (!audioCtx) return;
       const dist = camera.position.distanceTo(sourcePos);
-      const maxDist = 80;
-      if (dist > maxDist) return;
-      const vol = Math.max(0.08, 1.0 - (dist / maxDist));
-      playSound(type, vol);
-    }
-
-    /* --- PROCEDURAL TEXTURES --- */
-    function createContainerTexture(baseColor, stripeColor) {
-      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = baseColor; ctx.fillRect(0, 0, 128, 128);
-      ctx.fillStyle = stripeColor;
-      for (let i = 0; i < 128; i += 16) ctx.fillRect(i, 0, 5, 128);
-      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.strokeRect(0, 0, 128, 128);
-      const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-      return tex;
-    }
-
-    function createNeonSignTexture(text, color) {
-      const c = document.createElement('canvas'); c.width = 256; c.height = 64;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 256, 64);
-      ctx.font = 'bold 32px sans-serif'; ctx.fillStyle = color; ctx.textAlign = 'center';
-      ctx.shadowColor = color; ctx.shadowBlur = 12;
-      ctx.fillText(text, 128, 44);
-      return new THREE.CanvasTexture(c);
+      if (dist > 80) return;
+      playSound(type, Math.max(0.08, 1.0 - (dist / 80)));
     }
 
     /* --- BASIC SETUP --- */
@@ -436,21 +452,14 @@
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
     dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 260;
-    dirLight.shadow.camera.left = -90;
-    dirLight.shadow.camera.right = 90;
-    dirLight.shadow.camera.top = 90;
-    dirLight.shadow.camera.bottom = -90;
     dirLight.shadow.bias = -0.0004;
     scene.add(dirLight);
 
-    /* --- MAP SYSTEM & CULLABLE OBJECTS --- */
+    /* --- MAP SYSTEM & STABILE KOLLISION --- */
     const mapGroup = new THREE.Group();
     scene.add(mapGroup);
     const obstacles = [];
     const obstacleMeshes = [];
-    const cullableObjects = []; // Alle Objekte für das Blickfeld-Culling
 
     function addObstacleBox(x, y, z, sx, sy, sz, mat) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
@@ -458,7 +467,6 @@
       m.castShadow = true; m.receiveShadow = true;
       mapGroup.add(m);
       obstacleMeshes.push(m);
-      cullableObjects.push(m); // Für Blickfeld-Culling registrieren
       obstacles.push({ minX: x - sx/2, maxX: x + sx/2, minZ: z - sz/2, maxZ: z + sz/2, minY: y, maxY: y + sy, isRamp: false });
       return m;
     }
@@ -472,7 +480,6 @@
       m.castShadow = true; m.receiveShadow = true;
       mapGroup.add(m);
       obstacleMeshes.push(m);
-      cullableObjects.push(m);
       obstacles.push({ minX: x - sx/2, maxX: x + sx/2, minZ: z - sz/2, maxZ: z + sz/2, minY: y, maxY: y + sy, isRamp: true });
     }
 
@@ -480,7 +487,6 @@
       mapGroup.clear();
       obstacles.length = 0;
       obstacleMeshes.length = 0;
-      cullableObjects.length = 0;
 
       if (type === 'warehouse') {
         scene.background = new THREE.Color(0x93c5fd);
@@ -497,11 +503,9 @@
         addRamp(0, 0, 15, 6, 5.5, 14, 0);
         addRamp(0, 0, -15, 6, 5.5, 14, Math.PI);
 
-        const redCont = createContainerTexture('#dc2626', '#991b1b');
-        const blueCont = createContainerTexture('#2563eb', '#1d4ed8');
-        addObstacleBox(-26, 0, -15, 16, 6, 7, new THREE.MeshStandardMaterial({ map: blueCont, roughness: 0.4 }));
-        addObstacleBox(-26, 6, -15, 16, 6, 7, new THREE.MeshStandardMaterial({ map: redCont, roughness: 0.4 }));
-        addObstacleBox(26, 0, 15, 16, 6, 7, new THREE.MeshStandardMaterial({ map: redCont, roughness: 0.4 }));
+        addObstacleBox(-26, 0, -15, 16, 6, 7, new THREE.MeshStandardMaterial({ color: 0x2563eb }));
+        addObstacleBox(-26, 6, -15, 16, 6, 7, new THREE.MeshStandardMaterial({ color: 0xdc2626 }));
+        addObstacleBox(26, 0, 15, 16, 6, 7, new THREE.MeshStandardMaterial({ color: 0xdc2626 }));
       } 
       else if (type === 'desert') {
         scene.background = new THREE.Color(0xfde68a);
@@ -516,7 +520,6 @@
         addRamp(0, 0, 16, 6, 5, 12, 0);
         addObstacleBox(-26, 0, -20, 14, 8, 8, mSand);
         addObstacleBox(26, 0, 20, 8, 8, 14, mSand);
-        addObstacleBox(0, 10, -25, 15, 2.5, 3, mSand);
       } 
       else if (type === 'cyber') {
         scene.background = new THREE.Color(0x050510);
@@ -531,129 +534,118 @@
         addObstacleBox(0, 0, 0, 16, 6, 16, mNeonCyan);
         addObstacleBox(-26, 0, -20, 8, 14, 8, mNeonPink);
         addObstacleBox(26, 0, 20, 8, 14, 8, mNeonPink);
-
-        const signTex = createNeonSignTexture('ARSENAL // FFA', '#00f0ff');
-        const signMesh = new THREE.Mesh(new THREE.BoxGeometry(20, 5, 0.4), new THREE.MeshBasicMaterial({ map: signTex }));
-        signMesh.position.set(0, 12, -18);
-        mapGroup.add(signMesh);
-        cullableObjects.push(signMesh);
       }
     }
     buildMap('warehouse');
 
-    /* --- BLICKFELD-CULLING SYSTEM (HINTERBEREICH VERSCHWINDET ZUR LEISTUNGSSTEIGERUNG) --- */
-    const frustum = new THREE.Frustum();
-    const projScreenMatrix = new THREE.Matrix4();
-
-    function updateFrustumCulling() {
-      projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-      frustum.setFromProjectionMatrix(projScreenMatrix);
-
-      // Objekte außerhalb des Blickfeldes sofort aus dem Rendervorgang werfen
-      for (let i = 0; i < cullableObjects.length; i++) {
-        const obj = cullableObjects[i];
-        obj.visible = frustum.intersectsObject(obj);
+    function checkCollision(px, pz, py) {
+      const r = 0.75;
+      for (let i = 0; i < obstacles.length; i++) {
+        const obs = obstacles[i];
+        if (obs.isRamp) continue;
+        if (px + r > obs.minX && px - r < obs.maxX && pz + r > obs.minZ && pz - r < obs.maxZ) {
+          if (py - 2.8 < obs.maxY && py + 0.2 > obs.minY) return obs;
+        }
       }
+      return null;
     }
 
-    /* --- TODES-EFFEKT: VERBRENNEN & GLUT-PARTIKEL --- */
+    /* --- EFFEKTE, VERBRENNEN & DROPS (MUNITION & MEDKIT) --- */
     function spawnBurningDisintegration(pos) {
       playSound('burn', 1.0);
-      const emberCount = 22;
+      const emberCount = 20;
       const colors = [0xff4500, 0xf59e0b, 0xef4444, 0x18181b];
 
       for (let i = 0; i < emberCount; i++) {
         const col = colors[Math.floor(Math.random() * colors.length)];
         const size = 0.15 + Math.random() * 0.2;
-        const ember = new THREE.Mesh(
-          new THREE.BoxGeometry(size, size, size),
-          new THREE.MeshBasicMaterial({ color: col })
-        );
-        ember.position.set(
-          pos.x + (Math.random() - 0.5) * 1.4,
-          pos.y + 0.5 + Math.random() * 2.5,
-          pos.z + (Math.random() - 0.5) * 1.4
-        );
+        const ember = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), new THREE.MeshBasicMaterial({ color: col }));
+        ember.position.set(pos.x + (Math.random() - 0.5) * 1.2, pos.y + 0.5 + Math.random() * 2, pos.z + (Math.random() - 0.5) * 1.2);
         scene.add(ember);
-
-        const vel = new THREE.Vector3(
-          (Math.random() - 0.5) * 0.18,
-          0.12 + Math.random() * 0.14,
-          (Math.random() - 0.5) * 0.18
-        );
-        let life = 32;
-
+        const vel = new THREE.Vector3((Math.random() - 0.5) * 0.15, 0.12 + Math.random() * 0.12, (Math.random() - 0.5) * 0.15);
+        let life = 30;
         function updateEmber() {
-          ember.position.add(vel);
-          vel.y -= 0.003;
-          ember.scale.multiplyScalar(0.94);
-          life--;
-          if (life > 0) requestAnimationFrame(updateEmber);
-          else scene.remove(ember);
+          ember.position.add(vel); vel.y -= 0.003; ember.scale.multiplyScalar(0.95); life--;
+          if (life > 0) requestAnimationFrame(updateEmber); else scene.remove(ember);
         }
         updateEmber();
       }
     }
 
-    /* --- MUNITIONS-DROP SYSTEM --- */
-    const ammoDrops = [];
-    const ammoCrateMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.4, metalness: 0.4 });
-    const ammoGoldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.2, metalness: 0.8 });
+    const groundPickups = [];
+    function spawnPickup(pos) {
+      // 50% Medkit, 50% Munition
+      const isMedkit = Math.random() < 0.5;
+      const group = new THREE.Group();
+      group.position.set(pos.x, 0.7, pos.z);
 
-    function spawnAmmoDrop(pos) {
-      const dropGroup = new THREE.Group();
-      dropGroup.position.set(pos.x, 0.7, pos.z);
+      if (isMedkit) {
+        // Weißes Medkit mit rotem Kreuz
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 0.45), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }));
+        const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.47, 0.15), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.47, 0.4), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        group.add(box, crossH, crossV);
+        const light = new THREE.PointLight(0xef4444, 1.5, 4);
+        group.add(light);
+      } else {
+        // Grüne Munitionskiste mit Goldband
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.45), new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.4 }));
+        const band = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.1, 0.49), new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.2, metalness: 0.8 }));
+        group.add(box, band);
+        const light = new THREE.PointLight(0x22c55e, 1.2, 4);
+        group.add(light);
+      }
 
-      // Kiste
-      const crate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.45, 0.5), ammoCrateMat);
-      crate.castShadow = true;
-      const band = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.1, 0.54), ammoGoldMat);
-      dropGroup.add(crate, band);
-
-      // Leuchtender Punkt
-      const dropLight = new THREE.PointLight(0x22c55e, 1.2, 5);
-      dropGroup.add(dropLight);
-
-      scene.add(dropGroup);
-      ammoDrops.push({ group: dropGroup, baseY: 0.7, despawnTime: performance.now() + 24000 });
+      scene.add(group);
+      groundPickups.push({ group: group, type: isMedkit ? 'medkit' : 'ammo', baseY: 0.7, despawnTime: performance.now() + 25000 });
     }
 
-    function checkAmmoPickups() {
+    function checkPickups() {
       const pPos = camera.position;
-      for (let i = ammoDrops.length - 1; i >= 0; i--) {
-        const drop = ammoDrops[i];
-        const dist = pPos.distanceTo(drop.group.position);
-
-        // Einsammeln
-        if (dist < 2.3) {
-          playSound('ammo_pickup');
-          weapons.pistol.reserve += 12;
-          weapons.sniper.reserve += 5;
-          updateAmmoUI();
-
-          // Popup Banner
+      for (let i = groundPickups.length - 1; i >= 0; i--) {
+        const item = groundPickups[i];
+        if (pPos.distanceTo(item.group.position) < 2.3) {
           const banner = document.getElementById('pickup-banner');
-          banner.style.opacity = '1';
-          banner.style.transform = 'translate(-50%, -50%) scale(1.1)';
-          setTimeout(() => {
-            banner.style.opacity = '0';
-            banner.style.transform = 'translate(-50%, -50%) scale(1)';
-          }, 1100);
+          if (item.type === 'medkit') {
+            playSound('heal');
+            playerHealth = Math.min(100, playerHealth + 35);
+            updateHealthUI();
+            banner.innerText = '+MEDKIT AUFGENOMMEN (+35 HP)!';
+            banner.style.background = 'rgba(239, 68, 68, 0.95)';
+          } else {
+            playSound('ammo_pickup');
+            weapons.pistol.reserve += 12;
+            weapons.sniper.reserve += 5;
+            if (unlockedWeapons.rifle) weapons.rifle.reserve += 30;
+            if (unlockedWeapons.shotgun) weapons.shotgun.reserve += 12;
+            updateAmmoUI();
+            banner.innerText = '+MUNITION AUFGENOMMEN!';
+            banner.style.background = 'rgba(16, 185, 129, 0.95)';
+          }
 
-          scene.remove(drop.group);
-          ammoDrops.splice(i, 1);
-        } else if (performance.now() > drop.despawnTime) {
-          scene.remove(drop.group);
-          ammoDrops.splice(i, 1);
+          banner.style.opacity = '1';
+          setTimeout(() => { banner.style.opacity = '0'; }, 1100);
+
+          scene.remove(item.group);
+          groundPickups.splice(i, 1);
+        } else if (performance.now() > item.despawnTime) {
+          scene.remove(item.group);
+          groundPickups.splice(i, 1);
         }
       }
     }
 
-    /* --- WAFFEN & MUNITION --- */
+    /* --- SHOP & WAFFEN-SYSTEM --- */
+    let playerCoins = 0;
+    const unlockedWeapons = { knife: true, pistol: true, sniper: true, shotgun: false, rifle: false };
+    const unlockedSkins = { default: true, gold: false, neon: false, lava: false };
+
     const weapons = {
-      knife:  { name: 'Messer',  fireRate: 350, range: 5.2, clip: Infinity, ammo: Infinity, reserve: Infinity, reloadTime: 0 },
-      pistol: { name: 'Pistole', fireRate: 220, damageHead: 100, damageBody: 34, range: 90, clip: 12, ammo: 12, reserve: 36, reloadTime: 1400 },
-      sniper: { name: 'Sniper',  fireRate: 950, damageHead: 200, damageBody: 100, range: 250, clip: 5, ammo: 5, reserve: 15, reloadTime: 2000 }
+      knife:   { name: 'Messer',   fireRate: 350, range: 5.2, clip: Infinity, ammo: Infinity, reserve: Infinity, reloadTime: 0 },
+      pistol:  { name: 'Pistole',  fireRate: 220, damageHead: 100, damageBody: 34, range: 90, clip: 12, ammo: 12, reserve: 36, reloadTime: 1400 },
+      sniper:  { name: 'Sniper',   fireRate: 950, damageHead: 200, damageBody: 100, range: 250, clip: 5, ammo: 5, reserve: 15, reloadTime: 2000 },
+      shotgun: { name: 'Shotgun',  fireRate: 800, damageHead: 160, damageBody: 80, range: 45, clip: 6, ammo: 6, reserve: 24, reloadTime: 1800 },
+      rifle:   { name: 'Rifle',    fireRate: 110, damageHead: 65, damageBody: 24, range: 120, clip: 30, ammo: 30, reserve: 90, reloadTime: 1600 }
     };
     let currentWeaponKey = 'sniper';
     let lastShootTime = 0;
@@ -663,11 +655,60 @@
 
     let currentSkin = 'default';
     const skinColors = {
-      default: { knife: 0xd4d4d8, pistol: 0x18181b, sniper: 0x27272a, accent: 0x09090b },
-      gold:    { knife: 0xfacc15, pistol: 0xfacc15, sniper: 0xfacc15, accent: 0xeab308 },
-      neon:    { knife: 0xff007f, pistol: 0x00f0ff, sniper: 0x00f0ff, accent: 0xff007f },
-      lava:    { knife: 0xff4500, pistol: 0xea580c, sniper: 0xea580c, accent: 0x7c2d12 }
+      default: { knife: 0xd4d4d8, pistol: 0x18181b, sniper: 0x27272a, rifle: 0x475569, shotgun: 0x1e293b, accent: 0x09090b },
+      gold:    { knife: 0xfacc15, pistol: 0xfacc15, sniper: 0xfacc15, rifle: 0xfacc15, shotgun: 0xfacc15, accent: 0xeab308 },
+      neon:    { knife: 0xff007f, pistol: 0x00f0ff, sniper: 0x00f0ff, rifle: 0x00f0ff, shotgun: 0xff007f, accent: 0xff007f },
+      lava:    { knife: 0xff4500, pistol: 0xea580c, sniper: 0xea580c, rifle: 0xea580c, shotgun: 0xff4500, accent: 0x7c2d12 }
     };
+
+    function addCoins(amount) {
+      playerCoins += amount;
+      document.getElementById('coin-display').innerText = playerCoins;
+      document.getElementById('shop-coin-count').innerText = playerCoins;
+    }
+
+    function toggleShop(open) {
+      const modal = document.getElementById('shop-modal');
+      modal.style.display = open ? 'flex' : 'none';
+      if (open) {
+        document.exitPointerLock();
+        initAudio();
+      }
+    }
+
+    function switchShopTab(tab, btn) {
+      document.querySelectorAll('.shop-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('shop-tab-weapons').style.display = (tab === 'weapons') ? 'grid' : 'none';
+      document.getElementById('shop-tab-skins').style.display = (tab === 'skins') ? 'grid' : 'none';
+    }
+
+    function buyWeapon(key, price) {
+      if (playerCoins >= price && !unlockedWeapons[key]) {
+        playerCoins -= price;
+        unlockedWeapons[key] = true;
+        addCoins(0);
+        playSound('coin');
+        const b = document.getElementById(`buy-${key}`);
+        b.innerText = 'Freigeschaltet!';
+        b.disabled = true;
+        switchWeapon(key);
+      }
+    }
+
+    function buySkin(key, price) {
+      if (playerCoins >= price && !unlockedSkins[key]) {
+        playerCoins -= price;
+        unlockedSkins[key] = true;
+        addCoins(0);
+        playSound('coin');
+        const b = document.getElementById(`buy-skin-${key}`);
+        b.innerText = 'Aktiv';
+        b.disabled = true;
+        currentSkin = key;
+        buildDetailedWeapons();
+      }
+    }
 
     function updateAmmoUI() {
       const w = weapons[currentWeaponKey];
@@ -677,7 +718,7 @@
         display.innerText = '∞ / ∞'; hint.style.display = 'none';
       } else {
         display.innerText = `${w.ammo} / ${w.reserve}`;
-        hint.style.display = (w.ammo <= 2 && w.reserve > 0) ? 'block' : 'none';
+        hint.style.display = (w.ammo <= 3 && w.reserve > 0) ? 'block' : 'none';
       }
     }
 
@@ -699,7 +740,7 @@
     camera.add(weaponContainer);
     scene.add(camera);
 
-    let knifeGroup, pistolGroup, sniperGroup;
+    let knifeGroup, pistolGroup, sniperGroup, shotgunGroup, rifleGroup;
     const armMat = new THREE.MeshLambertMaterial({ color: 0xf5cd30 });
     const gloveMat = new THREE.MeshLambertMaterial({ color: 0x18181b });
 
@@ -724,7 +765,7 @@
       weaponContainer.clear();
       const col = skinColors[currentSkin];
 
-      // Messer
+      // 1. Messer
       knifeGroup = new THREE.Group();
       const rArmKnife = createDetailedArm(false);
       rArmKnife.position.set(0.35, -0.05, -0.35); rArmKnife.rotation.set(-0.3, 0.2, -0.1);
@@ -734,7 +775,7 @@
       hilt.position.set(0.32, -0.36, -0.58);
       knifeGroup.add(rArmKnife, blade, hilt);
 
-      // Pistole
+      // 2. Pistole
       pistolGroup = new THREE.Group();
       const rArmPistol = createDetailedArm(false);
       rArmPistol.position.set(0.28, -0.02, -0.35); rArmPistol.rotation.set(-0.2, 0.1, 0);
@@ -746,22 +787,41 @@
       frontSight.position.set(0.28, -0.14, -0.88);
       pistolGroup.add(rArmPistol, slide, grip, frontSight);
 
-      // Sniper
+      // 3. Sniper
       sniperGroup = new THREE.Group();
       const rArmSniper = createDetailedArm(false);
       rArmSniper.position.set(0.32, -0.02, -0.35);
       const lArmSniper = createDetailedArm(true);
       lArmSniper.position.set(-0.18, -0.05, -0.45); lArmSniper.rotation.set(0.2, 0.4, -0.3);
-
       const sBody = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 1.2), new THREE.MeshStandardMaterial({ color: col.sniper, metalness: 0.6, roughness: 0.3 }));
       sBody.position.set(0.32, -0.26, -0.75);
       const sBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1), new THREE.MeshStandardMaterial({ color: col.accent, metalness: 0.85, roughness: 0.15 }));
       sBarrel.rotation.x = Math.PI / 2; sBarrel.position.set(0.32, -0.22, -1.45);
-      const brake = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.15), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-      brake.position.set(0.32, -0.22, -2.05);
       const sScope = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.5), new THREE.MeshStandardMaterial({ color: 0x09090b, metalness: 0.9 }));
       sScope.rotation.x = Math.PI / 2; sScope.position.set(0.32, -0.09, -0.75);
-      sniperGroup.add(rArmSniper, lArmSniper, sBody, sBarrel, brake, sScope);
+      sniperGroup.add(rArmSniper, lArmSniper, sBody, sBarrel, sScope);
+
+      // 4. Shotgun
+      shotgunGroup = new THREE.Group();
+      const rArmShotgun = createDetailedArm(false); rArmShotgun.position.set(0.3, -0.02, -0.35);
+      const lArmShotgun = createDetailedArm(true); lArmShotgun.position.set(-0.12, -0.05, -0.55);
+      const sgBody = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.2, 0.9), new THREE.MeshStandardMaterial({ color: col.shotgun, roughness: 0.4 }));
+      sgBody.position.set(0.26, -0.25, -0.7);
+      const sgBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8), new THREE.MeshStandardMaterial({ color: col.accent, metalness: 0.8 }));
+      sgBarrel.rotation.x = Math.PI / 2; sgBarrel.position.set(0.26, -0.2, -1.2);
+      shotgunGroup.add(rArmShotgun, lArmShotgun, sgBody, sgBarrel);
+
+      // 5. Rifle (AK-47 / Sturmgewehr)
+      rifleGroup = new THREE.Group();
+      const rArmRifle = createDetailedArm(false); rArmRifle.position.set(0.3, -0.02, -0.35);
+      const lArmRifle = createDetailedArm(true); lArmRifle.position.set(-0.14, -0.05, -0.5);
+      const rfBody = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.22, 1.0), new THREE.MeshStandardMaterial({ color: col.rifle, roughness: 0.5 }));
+      rfBody.position.set(0.28, -0.24, -0.7);
+      const rfMag = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 0.2), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+      rfMag.position.set(0.28, -0.45, -0.65); rfMag.rotation.x = -0.3;
+      const rfBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7), new THREE.MeshStandardMaterial({ color: col.accent, metalness: 0.8 }));
+      rfBarrel.rotation.x = Math.PI / 2; rfBarrel.position.set(0.28, -0.2, -1.3);
+      rifleGroup.add(rArmRifle, lArmRifle, rfBody, rfMag, rfBarrel);
 
       updateWeaponInHand();
     }
@@ -771,12 +831,14 @@
       if (currentWeaponKey === 'knife') weaponContainer.add(knifeGroup);
       if (currentWeaponKey === 'pistol') weaponContainer.add(pistolGroup);
       if (currentWeaponKey === 'sniper') weaponContainer.add(sniperGroup);
+      if (currentWeaponKey === 'shotgun') weaponContainer.add(shotgunGroup);
+      if (currentWeaponKey === 'rifle') weaponContainer.add(rifleGroup);
       document.getElementById('weapon-name').innerText = weapons[currentWeaponKey].name;
       updateAmmoUI();
     }
     buildDetailedWeapons();
 
-    /* --- DIE 5 BOTS DER LOBBY --- */
+    /* --- DIE 5 BOTS (FFA MATCH) --- */
     const bots = [];
     const botHitboxes = [];
     const botNames = ['Bacon_Boy_99', 'BaconGirl_Pro', 'Classic_Noob', 'Guest_666', 'BloxSniper'];
@@ -821,19 +883,17 @@
       const isNoob = (index === 2);
       const isGirl = (index === 1);
       const name = botNames[index];
-      const botWeaponType = (index === 0) ? 'knife' : (index === 1 ? 'pistol' : (index === 2 ? 'knife' : (index === 3 ? 'pistol' : 'sniper')));
+      const botWeaponType = (index === 0) ? 'knife' : (index === 1 ? 'pistol' : (index === 2 ? 'rifle' : (index === 3 ? 'shotgun' : 'sniper')));
 
       const skinMat = new THREE.MeshStandardMaterial({ color: isNoob ? 0xf5cd30 : 0xfcd34d, roughness: 0.5 });
       const torsoMat = new THREE.MeshStandardMaterial({ color: isNoob ? 0x0d69ac : (isGirl ? 0xd946ef : 0xd90429), roughness: 0.5 });
       const pantsMat = new THREE.MeshStandardMaterial({ color: isNoob ? 0x3a7d44 : 0x1e293b, roughness: 0.5 });
 
-      // Kopf
       const head = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 1.15, 16), skinMat);
       head.position.y = 4.2; head.castShadow = true;
       head.userData = { bot: bot, type: 'head' };
       bot.add(head);
       botHitboxes.push(head);
-
       addDetailedHeadAccessories(head);
 
       if (!isNoob) {
@@ -843,7 +903,6 @@
         head.add(hair);
       }
 
-      // Torso
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.74, 2.0, 16), torsoMat);
       torso.scale.set(1.15, 1.0, 0.65);
       torso.position.y = 2.6; torso.castShadow = true;
@@ -851,7 +910,6 @@
       bot.add(torso);
       botHitboxes.push(torso);
 
-      // Gliedmaßen
       function makeLimb(mat) {
         const g = new THREE.Group();
         const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.32, 2.0, 12), mat);
@@ -872,7 +930,7 @@
       bot.add(leftArm, rightArm, leftLeg, rightLeg);
 
       const botGunMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 0.2, (botWeaponType === 'sniper' ? 1.0 : 0.45)),
+        new THREE.BoxGeometry(0.12, 0.2, (botWeaponType === 'sniper' ? 1.0 : (botWeaponType === 'rifle' ? 0.7 : 0.45))),
         new THREE.MeshStandardMaterial({ color: 0x111111 })
       );
       botGunMesh.position.set(0, -1.0, -0.3);
@@ -887,10 +945,10 @@
         isGrounded: true,
         nextJumpTime: performance.now() + 2000 + Math.random() * 3000,
         lastAttack: 0,
-        attackCooldown: (botWeaponType === 'sniper' ? 2600 : (botWeaponType === 'pistol' ? 950 : 650)),
-        damageToPlayer: (botWeaponType === 'sniper' ? 18 : (botWeaponType === 'pistol' ? 6 : 12)),
-        damageToBot: (botWeaponType === 'sniper' ? 45 : (botWeaponType === 'pistol' ? 22 : 35)),
-        attackRange: (botWeaponType === 'sniper' ? 65 : (botWeaponType === 'pistol' ? 32 : 4.5)),
+        attackCooldown: (botWeaponType === 'sniper' ? 2600 : (botWeaponType === 'shotgun' ? 1200 : (botWeaponType === 'rifle' ? 250 : 800))),
+        damageToPlayer: (botWeaponType === 'sniper' ? 18 : (botWeaponType === 'shotgun' ? 14 : (botWeaponType === 'rifle' ? 5 : 8))),
+        damageToBot: (botWeaponType === 'sniper' ? 45 : (botWeaponType === 'shotgun' ? 35 : (botWeaponType === 'rifle' ? 14 : 22))),
+        attackRange: (botWeaponType === 'sniper' ? 65 : (botWeaponType === 'rifle' ? 38 : (botWeaponType === 'shotgun' ? 16 : 4.5))),
         target: null,
         nextRetargetTime: 0,
         leftLeg: leftLeg, rightLeg: rightLeg, leftArm: leftArm, rightArm: rightArm,
@@ -903,6 +961,62 @@
 
     const spawnPositions = [[-35, -35], [35, 35], [-30, 30], [30, -30], [0, -45]];
     spawnPositions.forEach((pos, idx) => createBot(pos[0], pos[1], idx));
+
+    /* --- MATCH STATS & LEADERBOARD SYSTEM --- */
+    const matchStats = {
+      'Du': { kills: 0, deaths: 0 }
+    };
+    botNames.forEach(name => matchStats[name] = { kills: 0, deaths: 0 });
+
+    let roundSecondsLeft = 90; // 90 Sekunden Rundenzeit
+    let roundTimerInterval = null;
+
+    function startRoundTimer() {
+      clearInterval(roundTimerInterval);
+      roundTimerInterval = setInterval(() => {
+        if (!isPlaying) return;
+        roundSecondsLeft--;
+        const mins = Math.floor(roundSecondsLeft / 60);
+        const secs = roundSecondsLeft % 60;
+        document.getElementById('round-timer').innerText = `0${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+        if (roundSecondsLeft <= 0) {
+          endRoundAndShowLeaderboard();
+        }
+      }, 1000);
+    }
+
+    function endRoundAndShowLeaderboard() {
+      isPlaying = false;
+      document.exitPointerLock();
+
+      const screen = document.getElementById('round-end-screen');
+      screen.style.display = 'flex';
+
+      // Sortiere Bestenliste nach Kills
+      const sorted = Object.entries(matchStats).sort((a, b) => b[1].kills - a[1].kills);
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = '';
+
+      sorted.forEach(([name, data], idx) => {
+        const row = document.createElement('div');
+        row.className = `lb-row ${idx === 0 ? 'first' : ''} ${name === 'Du' ? 'user' : ''}`;
+        row.innerHTML = `<span>#${idx+1} ${name} ${idx === 0 ? '👑' : ''}</span> <span>${data.kills} Kills &bull; ${data.deaths} Deaths</span>`;
+        list.appendChild(row);
+      });
+
+      let nextVoteCountdown = 5;
+      const nextTimerText = document.getElementById('next-vote-timer');
+      const nextVoteInterval = setInterval(() => {
+        nextVoteCountdown--;
+        nextTimerText.innerText = `Map-Vote startet in ${nextVoteCountdown}s...`;
+        if (nextVoteCountdown <= 0) {
+          clearInterval(nextVoteInterval);
+          screen.style.display = 'none';
+          startMapVoting();
+        }
+      }, 1000);
+    }
 
     /* --- SPIELER PHYSIK & SCHADEN --- */
     let playerHealth = 100;
@@ -918,7 +1032,6 @@
     const blocker = document.getElementById('blocker');
     const damageFlash = document.getElementById('damage-flash');
     const lowHpPulse = document.getElementById('low-hp-pulse');
-    const deathScreen = document.getElementById('death-screen');
 
     function updateHealthUI() {
       document.getElementById('health-val').innerText = Math.max(0, Math.round(playerHealth));
@@ -946,11 +1059,11 @@
     function playerDie(attackerName) {
       playerHealth = 0;
       updateHealthUI();
-      spawnBurningDisintegration(camera.position); // Spieler verbrennt beim Sterben!
-      spawnAmmoDrop(camera.position);
+      matchStats['Du'].deaths++;
+      if (matchStats[attackerName]) matchStats[attackerName].kills++;
 
-      deathScreen.style.display = 'flex';
-      deathScreen.children[0].innerText = `ELIMINIERT VON ${attackerName}!`;
+      spawnBurningDisintegration(camera.position);
+      spawnPickup(camera.position);
 
       const feed = document.getElementById('killfeed');
       const msg = document.createElement('div');
@@ -962,7 +1075,6 @@
       setTimeout(() => {
         playerHealth = 100;
         updateHealthUI();
-        deathScreen.style.display = 'none';
         camera.position.set(0, 3, 26);
       }, 2000);
     }
@@ -971,6 +1083,7 @@
       initAudio();
       isPlaying = true;
       blocker.style.display = 'none';
+      startRoundTimer();
       try {
         canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
         canvas.requestPointerLock();
@@ -1005,10 +1118,13 @@
       if (e.code === 'Space' && player.isGrounded) {
         player.velocity.y = 0.23; player.isGrounded = false;
       }
+      if (e.key === 'b' || e.key === 'B') toggleShop(document.getElementById('shop-modal').style.display !== 'flex');
       if (e.key === 'r' || e.key === 'R') startReload();
       if (e.key === '1') switchWeapon('knife');
       if (e.key === '2') switchWeapon('pistol');
       if (e.key === '3') switchWeapon('sniper');
+      if (e.key === '4' && unlockedWeapons.shotgun) switchWeapon('shotgun');
+      if (e.key === '5' && unlockedWeapons.rifle) switchWeapon('rifle');
     });
 
     window.addEventListener('keyup', (e) => {
@@ -1045,34 +1161,6 @@
       camera.updateProjectionMatrix();
     }
 
-    function checkCollision(px, pz, py) {
-      const r = player.radius;
-      for (let i = 0; i < obstacles.length; i++) {
-        const obs = obstacles[i];
-        if (obs.isRamp) continue;
-        if (px + r > obs.minX && px - r < obs.maxX && pz + r > obs.minZ && pz - r < obs.maxZ) {
-          if (py - 2.8 < obs.maxY && py + 0.2 > obs.minY) return obs;
-        }
-      }
-      return null;
-    }
-
-    function spawnSparks(pos) {
-      playSound('spark');
-      for (let i = 0; i < 6; i++) {
-        const spark = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
-        spark.position.copy(pos);
-        scene.add(spark);
-        const vel = new THREE.Vector3((Math.random() - 0.5) * 0.15, Math.random() * 0.15, (Math.random() - 0.5) * 0.15);
-        let life = 14;
-        function updateSpark() {
-          spark.position.add(vel); vel.y -= 0.008; life--;
-          if (life > 0) requestAnimationFrame(updateSpark); else scene.remove(spark);
-        }
-        updateSpark();
-      }
-    }
-
     /* --- SCHUSS & ATTACK (SPIELER) --- */
     const raycaster = new THREE.Raycaster();
 
@@ -1090,18 +1178,10 @@
       if (now - lastShootTime < current.fireRate) return;
       lastShootTime = now;
 
-      const flashLight = new THREE.PointLight(0xffedd5, 2.5, 9);
-      flashLight.position.set(camera.position.x, camera.position.y - 0.2, camera.position.z);
-      scene.add(flashLight);
-      setTimeout(() => scene.remove(flashLight), 60);
-
-      if (currentWeaponKey === 'knife') {
-        weaponContainer.position.z -= 0.25; weaponContainer.rotation.y -= 0.35;
-        setTimeout(() => { weaponContainer.position.z = 0; weaponContainer.rotation.y = 0; }, 110);
-      } else {
-        weaponContainer.position.z += 0.16; weaponContainer.rotation.x += 0.12;
-        setTimeout(() => { weaponContainer.position.z = 0; weaponContainer.rotation.x = 0; }, 90);
-      }
+      // Recoil Wackler
+      weaponContainer.position.z += 0.16;
+      weaponContainer.rotation.x += 0.12;
+      setTimeout(() => { weaponContainer.position.z = 0; weaponContainer.rotation.x = 0; }, 90);
 
       playSound(currentWeaponKey);
 
@@ -1113,10 +1193,7 @@
 
       if (hits.length > 0) {
         const hit = hits[0];
-        if (obstacleMeshes.includes(hit.object)) {
-          spawnSparks(hit.point);
-          return;
-        }
+        if (obstacleMeshes.includes(hit.object)) return;
 
         const bot = hit.object.userData.bot;
         if (!bot || !bot.userData.alive) return;
@@ -1134,11 +1211,7 @@
           } else {
             damage = 50; playSound('hit');
           }
-        } else if (currentWeaponKey === 'pistol') {
-          isHeadshot = (hit.object.userData.type === 'head');
-          damage = isHeadshot ? current.damageHead : current.damageBody;
-          if (isHeadshot) playSound('headshot'); else playSound('hit');
-        } else if (currentWeaponKey === 'sniper') {
+        } else {
           isHeadshot = (hit.object.userData.type === 'head');
           damage = isHeadshot ? current.damageHead : current.damageBody;
           if (isHeadshot) playSound('headshot'); else playSound('hit');
@@ -1164,17 +1237,23 @@
       bot.visible = false;
       bot.userData.respawnTimer = performance.now() + 3000;
 
-      // Verbrennen & Munitions-Drop auslösen!
+      matchStats['Du'].kills++;
+      bot.userData.deaths = (bot.userData.deaths || 0) + 1;
+      matchStats[bot.userData.name].deaths++;
+
+      addCoins(100); // 100 Coins für den Kill!
+      playSound('coin');
+
       spawnBurningDisintegration(bot.position);
-      spawnAmmoDrop(bot.position);
+      spawnPickup(bot.position);
 
       const feed = document.getElementById('killfeed');
       const msg = document.createElement('div');
       msg.className = 'kill-msg';
 
-      if (isBackstab) msg.innerHTML = `DU [Messer] ${bot.userData.name} <span class="special-kill">🔪 BACKSTAB!</span>`;
-      else if (isHeadshot) msg.innerHTML = `DU [${weapons[currentWeaponKey].name}] ${bot.userData.name} <span class="special-kill">🎯 HEADSHOT!</span>`;
-      else msg.innerHTML = `DU [${weapons[currentWeaponKey].name}] ${bot.userData.name}`;
+      if (isBackstab) msg.innerHTML = `DU [Messer] ${bot.userData.name} <span class="special-kill">🔪 BACKSTAB!</span> (+100 🪙)`;
+      else if (isHeadshot) msg.innerHTML = `DU [${weapons[currentWeaponKey].name}] ${bot.userData.name} <span class="special-kill">🎯 HEADSHOT!</span> (+100 🪙)`;
+      else msg.innerHTML = `DU [${weapons[currentWeaponKey].name}] ${bot.userData.name} (+100 🪙)`;
 
       feed.appendChild(msg);
       setTimeout(() => msg.remove(), 3400);
@@ -1185,9 +1264,11 @@
       victimBot.visible = false;
       victimBot.userData.respawnTimer = performance.now() + 3000;
 
-      // Verbrennen & Munitions-Drop auch bei Bot vs Bot!
+      matchStats[killerBot.userData.name].kills++;
+      matchStats[victimBot.userData.name].deaths++;
+
       spawnBurningDisintegration(victimBot.position);
-      spawnAmmoDrop(victimBot.position);
+      spawnPickup(victimBot.position);
 
       const feed = document.getElementById('killfeed');
       const msg = document.createElement('div');
@@ -1226,19 +1307,6 @@
     let userVoteChoice = null;
     let botVoteChoices = {};
 
-    function selectMapManual(mapKey, btn) {
-      document.querySelectorAll('.selector-row:nth-child(1) .selector-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      buildMap(mapKey);
-    }
-
-    function changeSkin(skinKey, btn) {
-      document.querySelectorAll('.selector-row:nth-child(2) .selector-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentSkin = skinKey;
-      buildDetailedWeapons();
-    }
-
     function startMapVoting() {
       if (votingActive) return;
       initAudio();
@@ -1250,7 +1318,6 @@
       modal.style.display = 'block';
       let timeLeft = 6;
       document.getElementById('vote-timer').innerText = `0${timeLeft}s`;
-      document.getElementById('vote-log-text').innerText = 'Warte auf Stimmen der 6 Spieler...';
       updateVoteCountsAndUI();
 
       const maps = ['warehouse', 'desert', 'cyber'];
@@ -1260,9 +1327,8 @@
           const chosen = maps[Math.floor(Math.random() * maps.length)];
           botVoteChoices[bName] = chosen;
           playSound('vote_ding');
-          document.getElementById('vote-log-text').innerText = `${bName} wählte ${getMapTitle(chosen)}!`;
           updateVoteCountsAndUI();
-        }, 900 + index * 850);
+        }, 800 + index * 800);
       });
 
       voteTimerInterval = setInterval(() => {
@@ -1280,23 +1346,13 @@
       initAudio();
       playSound('vote_ding');
       userVoteChoice = mapKey;
-      document.getElementById('vote-log-text').innerText = `Deine Stimme liegt auf ${getMapTitle(mapKey)}!`;
       updateVoteCountsAndUI();
-    }
-
-    function getMapTitle(key) {
-      if (key === 'warehouse') return 'Arsenal Dock 2.0';
-      if (key === 'desert') return 'Dust Outpost 2.0';
-      return 'Cyber Neon 2.0';
     }
 
     function updateVoteCountsAndUI() {
       const tally = { warehouse: [], desert: [], cyber: [] };
       if (userVoteChoice) tally[userVoteChoice].push('Du');
       for (let bName in botVoteChoices) tally[botVoteChoices[bName]].push(bName);
-
-      let totalVotes = (userVoteChoice ? 1 : 0) + Object.keys(botVoteChoices).length;
-      document.getElementById('total-vote-counter').innerText = `Stimmen: ${totalVotes} / 6`;
 
       ['warehouse', 'desert', 'cyber'].forEach(key => {
         const voters = tally[key];
@@ -1313,11 +1369,9 @@
 
         const btn = document.getElementById(`vbtn-${key}`);
         if (userVoteChoice === key) {
-          btn.innerText = '✓ DEINE WAHL';
-          btn.classList.add('selected');
+          btn.innerText = '✓ DEINE WAHL'; btn.classList.add('selected');
         } else {
-          btn.innerText = 'WÄHLEN';
-          btn.classList.remove('selected');
+          btn.innerText = 'WÄHLEN'; btn.classList.remove('selected');
         }
       });
     }
@@ -1332,49 +1386,45 @@
       if (tally.desert > tally[winner]) winner = 'desert';
       if (tally.cyber > tally[winner]) winner = 'cyber';
 
-      document.getElementById('vote-log-text').innerHTML = `<b style="color: #22c55e;">GEWINNER: ${getMapTitle(winner)} (${tally[winner]} Stimmen)!</b>`;
-      document.querySelectorAll('.selector-row:nth-child(1) .selector-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById(`btn-map-${winner}`);
-      if (activeBtn) activeBtn.classList.add('active');
-
       setTimeout(() => {
         buildMap(winner);
         document.getElementById('vote-modal').style.display = 'none';
-      }, 1800);
+        // Reset Runde
+        roundSecondsLeft = 90;
+        matchStats['Du'] = { kills: 0, deaths: 0 };
+        botNames.forEach(n => matchStats[n] = { kills: 0, deaths: 0 });
+        startGame();
+      }, 1400);
     }
 
-    /* --- GAME LOOP MIT BLICKFELD-CULLING & PICKUP CHECK --- */
+    /* --- GAME LOOP MIT BOT-KOLLISION (KEIN NOCLIP!) --- */
     function animate() {
       requestAnimationFrame(animate);
       const time = performance.now() * 0.005;
       const now = performance.now();
 
-      // 1. Blickfeld-Culling: Versteckt sofort alle Objekte im Rücken
-      updateFrustumCulling();
-
-      // 2. Munitionskisten drehen & schweben lassen
-      ammoDrops.forEach(d => {
-        d.group.rotation.y += 0.025;
-        d.group.position.y = d.baseY + Math.sin(time * 3) * 0.12;
+      // Pickups prüfen & drehen
+      groundPickups.forEach(p => {
+        p.group.rotation.y += 0.03;
+        p.group.position.y = p.baseY + Math.sin(time * 3) * 0.12;
       });
-      checkAmmoPickups();
+      checkPickups();
 
-      // 3. Lebensregeneration
+      // Lebensregeneration
       if (playerHealth < 100 && now - lastPlayerHitTime > 3000) {
         playerHealth = Math.min(100, playerHealth + 0.15);
         updateHealthUI();
       }
 
-      // 4. Reload Animation
+      // Reload-Animation
       if (isReloading) {
         const current = weapons[currentWeaponKey];
         const elapsed = now - reloadStartTime;
         const progress = Math.min(1.0, elapsed / current.reloadTime);
 
         if (progress < 0.5) {
-          const p = progress / 0.5;
-          weaponContainer.position.y = -0.4 * p;
-          weaponContainer.rotation.z = -0.35 * p;
+          weaponContainer.position.y = -0.4 * (progress / 0.5);
+          weaponContainer.rotation.z = -0.35 * (progress / 0.5);
         } else {
           const p = (progress - 0.5) / 0.5;
           weaponContainer.position.y = -0.4 * (1 - p);
@@ -1393,7 +1443,7 @@
         }
       }
 
-      // 5. Spieler-Bewegung
+      // Spieler-Bewegung
       if (isPlaying) {
         const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
         const side = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
@@ -1447,7 +1497,7 @@
         }
       }
 
-      // 6. BOTS KI (FFA KÄMPFE)
+      // BOTS KI: BEWEGUNG MIT HINDERNIS-KOLLISION (KEIN NOCLIP!)
       bots.forEach(bot => {
         if (!bot.userData.alive) {
           if (now > bot.userData.respawnTimer) {
@@ -1488,9 +1538,19 @@
           bot.position.y = 0; bot.userData.vy = 0; bot.userData.isGrounded = true;
         }
 
-        const stopDistance = (bot.userData.weapon === 'knife') ? 3.0 : ((bot.userData.weapon === 'pistol') ? 14 : 26);
+        // Bewegung mit KOLLISIONS-CHECK GEGEN WÄNDE (Fixiert Bot-Noclip!)
+        const stopDistance = (bot.userData.weapon === 'knife') ? 3.0 : ((bot.userData.weapon === 'shotgun') ? 12 : 22);
         if (dist > stopDistance) {
-          bot.translateZ(bot.userData.speed);
+          const dir = new THREE.Vector3();
+          bot.getWorldDirection(dir);
+
+          const bNextX = bot.position.x + dir.x * bot.userData.speed;
+          const bNextZ = bot.position.z + dir.z * bot.userData.speed;
+
+          // Kollisionsprüfung für Bots
+          if (!checkCollision(bNextX, bot.position.z, bot.position.y)) bot.position.x = bNextX;
+          if (!checkCollision(bot.position.x, bNextZ, bot.position.y)) bot.position.z = bNextZ;
+
           const limbAngle = Math.sin(time * 2.5) * 0.6;
           bot.userData.leftLeg.rotation.x = limbAngle;
           bot.userData.rightLeg.rotation.x = -limbAngle;
@@ -1498,18 +1558,15 @@
           bot.userData.rightArm.rotation.x = limbAngle;
         }
 
+        // Bot Angriffe
         if (dist <= bot.userData.attackRange) {
           if (now - bot.userData.lastAttack > bot.userData.attackCooldown) {
             bot.userData.lastAttack = now;
-
             bot.userData.rightArm.rotation.x = -1.2;
             setTimeout(() => { bot.userData.rightArm.rotation.x = 0; }, 180);
 
             if (target.type === 'player') {
-              if (bot.userData.weapon === 'knife') playSound('knife');
-              else if (bot.userData.weapon === 'pistol') playSound('pistol');
-              else if (bot.userData.weapon === 'sniper') playSound('sniper');
-
+              playSound(bot.userData.weapon);
               const hitChance = (bot.userData.weapon === 'knife') ? 0.9 : 0.45;
               if (Math.random() < hitChance) {
                 applyPlayerDamage(bot.userData.damageToPlayer, bot.userData.name);
@@ -1520,8 +1577,6 @@
               if (Math.random() < hitChance) {
                 const victim = target.bot;
                 victim.userData.hp -= bot.userData.damageToBot;
-                spawnSparks(victim.position);
-
                 if (victim.userData.hp <= 0) {
                   botKillOtherBot(bot, victim);
                 }
